@@ -28,6 +28,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 uint8_t txBuffer[9];
 uint8_t tGPS[9];
 TinyGPSLocation mylocation;
+T_beam t_beam = T_beam(); 
 
 uint32_t LatitudeBinary, LongitudeBinary;
 uint16_t altitudeGps;
@@ -41,12 +42,9 @@ RTC_DATA_ATTR uint32_t count = 0;
 // Application
 // -----------------------------------------------------------------------------
 
-void send(float lat, float lng) {
+void send() {
     char buffer[40];
     Serial.print("sending");
-    Serial.print(mylocation.lat());
-    
-    Serial.print(lat);
     snprintf(buffer, sizeof(buffer), "Latitude: \n", mylocation.lat());
     screen_print(buffer);
     snprintf(buffer, sizeof(buffer), "Longitude: %10.6f\n", mylocation.lng());
@@ -66,6 +64,7 @@ void send(float lat, float lng) {
     ttn_send(txBuffer, sizeof(txBuffer), LORAWAN_PORT, confirmed);
 
     count++;
+    sleep();
 }
 
 
@@ -99,7 +98,7 @@ void buildPacket(float lat, float lng)
 
 void sleep() {
     #if SLEEP_BETWEEN_MESSAGES
-
+        Serial.println("\n Sleep function");
         // Show the going to sleep message on the screen
         char buffer[20];
         snprintf(buffer, sizeof(buffer), "Sleeping in %3.1fs\n", (MESSAGE_TO_SLEEP_DELAY / 1000.0));
@@ -113,12 +112,10 @@ void sleep() {
 
         // Set the user button to wake the board
         sleep_interrupt(BUTTON_PIN, LOW);
-
-        // We sleep for the interval between messages minus the current millis
-        // this way we distribute the messages evenly every SEND_INTERVAL millis
-        uint32_t sleep_for = (millis() < SEND_INTERVAL) ? SEND_INTERVAL - millis() : SEND_INTERVAL;
-        sleep_millis(sleep_for);
-
+        Serial.println("\n GPS Sleep");    
+        t_beam.low_power_deep_sleep_timer();
+        //sleep_millis(sleep_for);
+        
     #endif
 }
 
@@ -175,13 +172,6 @@ void setup() {
     // Display
     screen_setup();
 
-    DEBUG_MSG("GPS\n");
-    
-       
-    
-    // Init GPS
-    //gps_setup();
-
     // Show logo on first boot
     if (0 == count) {
         screen_print(APP_NAME " " APP_VERSION, 0, 0);
@@ -191,7 +181,7 @@ void setup() {
     }
 
     // TTN setup
-    DEBUG_MSG("TTN1\n");
+    DEBUG_MSG("\nSetup TTN\n");
     if (!ttn_setup()) {
         screen_print("[ERR] Radio module not found!\n");
         delay(MESSAGE_TO_SLEEP_DELAY);
@@ -210,22 +200,19 @@ void setup() {
 void loop() { 
     
     //gps_loop();
-    DEBUG_MSG("LOOP_BEFLOC\n");
-    T_beam t_beam = T_beam(); 
-    mylocation = t_beam.getLocation();
+    DEBUG_MSG("LOOP_BEGIN\n");    
+    //mylocation = t_beam.getLocation();
     ttn_loop();
     screen_loop();    
     // Send every SEND_INTERVAL millis
     static uint32_t last = 0;
     static bool first = true;
+    Serial.print(last);
+    Serial.print(millis() - last);
     if (0 == last || millis() - last > SEND_INTERVAL) {
-        DEBUG_MSG("LOOP_INT\n");
-        Serial.print(F("SUCCES"));
-        float lat = mylocation.lat();
-        Serial.print(lat, 6);
-        Serial.print(F(","));
-        Serial.print(mylocation.lng(), 6);
-        Serial.println();
+        mylocation = t_beam.getLocation();
+        Serial.print(F("SUCCES\n"));
+
         //Serial.println(gps_hdop());
         //Serial.println(gps_latitude());
         //Serial.println(gps_longitude());
@@ -233,9 +220,7 @@ void loop() {
             DEBUG_MSG("LOOP_SEND\n");
             last = millis();
             first = false;
-            DEBUG_MSG("LOOP_SEND_2\n");
-            Serial.print(mylocation.lat());
-            send(lat,mylocation.lng());
+            send();         
         } else {   
             if (first) {
                 DEBUG_MSG("Waiting GPS\n");
@@ -243,6 +228,7 @@ void loop() {
                 first = false;
             }
             if (millis() > GPS_WAIT_FOR_LOCK) {                
+                DEBUG_MSG("Sleep\n"); 
                 sleep();
             }
         }

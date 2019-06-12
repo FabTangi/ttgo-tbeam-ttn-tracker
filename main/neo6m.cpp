@@ -52,10 +52,10 @@ void Neo6m::receiveData() {
     {
       char data = neoSerial.read();
       tGps->encode(data);
-      Serial.print(data);
+      //Serial.print(data);
     }
   }
-  //Serial.println("");
+  Serial.println("\n GPS data");
 }
 
 //Protocol Specification V14 11.2.3.2 Wake-up
@@ -74,6 +74,7 @@ void Neo6m::wakeup(){
 void Neo6m::enable_sleep() { //TODO implement  UBX-ACK
   do{ //We cannot read UBX ack therefore try to sleep gps until it does not send data anymore
     Serial.println("try to sleep gps!");
+    
     Neo6m::softwareReset(); //sleep_mode can only be activated at start up
     delay(600); //give some time to restart //TODO wait for ack
     neoSerial.write(RXM_PMREQ, sizeof(RXM_PMREQ));
