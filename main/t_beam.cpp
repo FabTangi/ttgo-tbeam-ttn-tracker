@@ -20,7 +20,7 @@ void T_beam::low_power_deep_sleep_timer(){
 
   gps->enable_sleep();
   lora->enable_sleep();
-  isolateGPIO();
+  //isolateGPIO();
   turnOffWifi();
   turnOffBluetooth();
 
