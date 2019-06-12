@@ -55,7 +55,7 @@ void Neo6m::receiveData() {
       //Serial.print(data);
     }
   }
-  Serial.println("\n GPS data");
+  Serial.println("\n GPS data not OK");
 }
 
 //Protocol Specification V14 11.2.3.2 Wake-up

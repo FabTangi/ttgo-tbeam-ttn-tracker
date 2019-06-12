@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "configuration.h"
 #include <rom/rtc.h>
+#include "soc/rtc.h"
 #include "t_beam.h"
 
 uint8_t txBuffer[11];
@@ -169,12 +170,20 @@ void setup() {
     #ifdef DEBUG_PORT
         DEBUG_PORT.begin(SERIAL_BAUD);
     #endif
+    Serial.print("Set Freq to 80");
+    rtc_clk_cpu_freq_set(RTC_CPU_FREQ_80M);
 
+    /* Disable pull supply voltage to SAR ADC */
+    CLEAR_PERI_REG_MASK(RTC_CNTL_TEST_MUX_REG, RTC_CNTL_ENT_RTC);
+    SET_PERI_REG_BITS(RTC_CNTL_TEST_MUX_REG, RTC_CNTL_DTEST_RTC, 0, RTC_CNTL_DTEST_RTC_S);
+
+    
     // Buttons & LED
     pinMode(BUTTON_PIN, INPUT_PULLUP);
     pinMode(LED_PIN, OUTPUT);
     pinMode(BAT_PIN, INPUT);
 
+    Serial.print(count);
     // Hello
     DEBUG_MSG(APP_NAME " " APP_VERSION "\n");
 

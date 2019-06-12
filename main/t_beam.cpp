@@ -27,6 +27,9 @@ void T_beam::low_power_deep_sleep_timer(){
   //enable
   Serial.println("sleeping for" + SEND_INTERVAL);
   Serial.flush();
+
+  //turnOffRTC();
+    
   //esp_sleep_enable_timer_wakeup(time_in_us);
   esp_sleep_enable_timer_wakeup(SEND_INTERVAL*1000);
   
