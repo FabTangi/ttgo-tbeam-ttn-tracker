@@ -50,7 +50,7 @@ void ttn_register(void (*callback)(uint8_t message));
 #define LORAWAN_CONFIRMED_EVERY 0           // Send confirmed message every these many messages (0 means never)
 #define LORAWAN_SF              DR_SF7      // Spreading factor
 #define LORAWAN_ADR             0           // Enable ADR
-#define GPS_WAIT_FOR_LOCK       5000        // Wait 5s after every boot for GPS lock
+#define GPS_WAIT_FOR_LOCK       1200000        // Wait 5s after every boot for GPS lock
 
 // -----------------------------------------------------------------------------
 // DEBUG
@@ -76,23 +76,24 @@ void ttn_register(void (*callback)(uint8_t message));
 // -----------------------------------------------------------------------------
 
 #define BUTTON_PIN      39
-#define LED_PIN         14
+#define LED_PIN         25 //14
 
 // -----------------------------------------------------------------------------
 // OLED
 // -----------------------------------------------------------------------------
 
 #define OLED_ADDRESS    0x3C
-#define OLED_SDA        21
-#define OLED_SCL        22
+#define OLED_SDA        4 //21
+#define OLED_SCL        15 //22
+
 
 // -----------------------------------------------------------------------------
 // GPS
 // -----------------------------------------------------------------------------
 
 #define GPS_SERIAL_NUM  1
-#define GPS_RX_PIN      12
-#define GPS_TX_PIN      15
+#define GPS_RX_PIN      22
+#define GPS_TX_PIN      23
 #define GPS_BAUDRATE    9600
 
 // -----------------------------------------------------------------------------
@@ -103,7 +104,7 @@ void ttn_register(void (*callback)(uint8_t message));
 #define MISO_GPIO       19
 #define MOSI_GPIO       27
 #define NSS_GPIO        18
-#define RESET_GPIO      23
+#define RESET_GPIO      14
 #define DIO0_GPIO       26
 #define DIO1_GPIO       33
 #define DIO2_GPIO       32

@@ -23,8 +23,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "configuration.h"
 #include <rom/rtc.h>
+#include "t_beam.h"
 
 uint8_t txBuffer[9];
+uint8_t tGPS[9];
+TinyGPSLocation mylocation;
+
+uint32_t LatitudeBinary, LongitudeBinary;
+uint16_t altitudeGps;
+uint8_t hdopGps;
+char t[32]; // used to sprintf for Serial output
 
 // Message counter, stored in RTC memory, survives deep sleep
 RTC_DATA_ATTR uint32_t count = 0;
@@ -33,16 +41,20 @@ RTC_DATA_ATTR uint32_t count = 0;
 // Application
 // -----------------------------------------------------------------------------
 
-void send() {
+void send(float lat, float lng) {
     char buffer[40];
-    snprintf(buffer, sizeof(buffer), "Latitude: %10.6f\n", gps_latitude());
+    Serial.print("sending");
+    Serial.print(mylocation.lat());
+    
+    Serial.print(lat);
+    snprintf(buffer, sizeof(buffer), "Latitude: \n", mylocation.lat());
     screen_print(buffer);
-    snprintf(buffer, sizeof(buffer), "Longitude: %10.6f\n", gps_longitude());
+    snprintf(buffer, sizeof(buffer), "Longitude: %10.6f\n", mylocation.lng());
     screen_print(buffer);
-    snprintf(buffer, sizeof(buffer), "Error: %4.2fm\n", gps_hdop());
+    snprintf(buffer, sizeof(buffer), "Error: %4.2fm\n", 1); //hdop
     screen_print(buffer);
 
-    buildPacket(txBuffer);
+    buildPacket(mylocation.lat(),mylocation.lng());
 
     #if LORAWAN_CONFIRMED_EVERY > 0
         bool confirmed = (count % LORAWAN_CONFIRMED_EVERY == 0);
@@ -55,6 +67,35 @@ void send() {
 
     count++;
 }
+
+
+void buildPacket(float lat, float lng)
+{
+  LatitudeBinary = ((lat + 90) / 180.0) * 16777215;
+  LongitudeBinary = ((lng + 180) / 360.0) * 16777215;
+  
+  sprintf(t, "Lat: %f", lat);
+  Serial.println(t);
+  
+  sprintf(t, "Lng: %f", lng);
+  Serial.println(t);
+  
+  txBuffer[0] = ( LatitudeBinary >> 16 ) & 0xFF;
+  txBuffer[1] = ( LatitudeBinary >> 8 ) & 0xFF;
+  txBuffer[2] = LatitudeBinary & 0xFF;
+
+  txBuffer[3] = ( LongitudeBinary >> 16 ) & 0xFF;
+  txBuffer[4] = ( LongitudeBinary >> 8 ) & 0xFF;
+  txBuffer[5] = LongitudeBinary & 0xFF;
+
+  altitudeGps = 100;
+  txBuffer[6] = ( altitudeGps >> 8 ) & 0xFF;
+  txBuffer[7] = altitudeGps & 0xFF;
+
+  hdopGps = 10/10;
+  txBuffer[8] = hdopGps & 0xFF;
+}
+
 
 void sleep() {
     #if SLEEP_BETWEEN_MESSAGES
@@ -134,8 +175,12 @@ void setup() {
     // Display
     screen_setup();
 
+    DEBUG_MSG("GPS\n");
+    
+       
+    
     // Init GPS
-    gps_setup();
+    //gps_setup();
 
     // Show logo on first boot
     if (0 == count) {
@@ -146,38 +191,58 @@ void setup() {
     }
 
     // TTN setup
+    DEBUG_MSG("TTN1\n");
     if (!ttn_setup()) {
         screen_print("[ERR] Radio module not found!\n");
         delay(MESSAGE_TO_SLEEP_DELAY);
         screen_off();
         sleep_forever();
     }
-
+    DEBUG_MSG("TTN2\n");
     ttn_register(callback);
+    DEBUG_MSG("TTN3\n");
     ttn_join();
+    DEBUG_MSG("TTN4\n");
     ttn_sf(LORAWAN_SF);
     ttn_adr(LORAWAN_ADR);
 }
 
-void loop() {
-    gps_loop();
+void loop() { 
+    
+    //gps_loop();
+    DEBUG_MSG("LOOP_BEFLOC\n");
+    T_beam t_beam = T_beam(); 
+    mylocation = t_beam.getLocation();
     ttn_loop();
-    screen_loop();
-
+    screen_loop();    
     // Send every SEND_INTERVAL millis
     static uint32_t last = 0;
     static bool first = true;
     if (0 == last || millis() - last > SEND_INTERVAL) {
-        if (0 < gps_hdop() && gps_hdop() < 50 && gps_latitude() != 0 && gps_longitude() != 0) {
+        DEBUG_MSG("LOOP_INT\n");
+        Serial.print(F("SUCCES"));
+        float lat = mylocation.lat();
+        Serial.print(lat, 6);
+        Serial.print(F(","));
+        Serial.print(mylocation.lng(), 6);
+        Serial.println();
+        //Serial.println(gps_hdop());
+        //Serial.println(gps_latitude());
+        //Serial.println(gps_longitude());
+        if (mylocation.lat() != 0 && mylocation.lng() != 0) {
+            DEBUG_MSG("LOOP_SEND\n");
             last = millis();
             first = false;
-            send();
-        } else {
+            DEBUG_MSG("LOOP_SEND_2\n");
+            Serial.print(mylocation.lat());
+            send(lat,mylocation.lng());
+        } else {   
             if (first) {
+                DEBUG_MSG("Waiting GPS\n");
                 screen_print("Waiting GPS lock\n");
                 first = false;
             }
-            if (millis() > GPS_WAIT_FOR_LOCK) {
+            if (millis() > GPS_WAIT_FOR_LOCK) {                
                 sleep();
             }
         }

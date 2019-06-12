@@ -107,8 +107,9 @@ void ttn_response(uint8_t * buffer, size_t len) {
 
 bool ttn_setup() {
     // SPI interface
+    DEBUG_MSG("SPI1\n");
     SPI.begin(SCK_GPIO, MISO_GPIO, MOSI_GPIO, NSS_GPIO);
-
+    DEBUG_MSG("SPI2\n");
     // LMIC init
     return ( 1 == os_init_ex( (const void *) &lmic_pins ) );
 }

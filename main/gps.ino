@@ -17,13 +17,14 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-*/
+
 
 #include <TinyGPS++.h>
-
+/*
 uint32_t LatitudeBinary, LongitudeBinary;
 uint16_t altitudeGps;
 uint8_t hdopGps;
+
 char t[32]; // used to sprintf for Serial output
 
 TinyGPSPlus _gps;
@@ -34,6 +35,7 @@ void gps_time(char * buffer, uint8_t size) {
 }
 
 float gps_latitude() {
+  Serial.println("Lat");
     return _gps.location.lat();
 }
 
@@ -54,15 +56,17 @@ uint8_t gps_sats() {
 }
 
 void gps_setup() {
+  Serial.println("Init GPS");
     _serial_gps.begin(GPS_BAUDRATE, SERIAL_8N1, GPS_RX_PIN, GPS_TX_PIN);
 }
 
 static void gps_loop() {
     while (_serial_gps.available()) {
+      Serial.println(_serial_gps.read());
         _gps.encode(_serial_gps.read());
     }
 }
-
+/*
 void buildPacket(uint8_t txBuffer[9])
 {
   LatitudeBinary = ((_gps.location.lat() + 90) / 180.0) * 16777215;
@@ -88,4 +92,4 @@ void buildPacket(uint8_t txBuffer[9])
 
   hdopGps = _gps.hdop.value()/10;
   txBuffer[8] = hdopGps & 0xFF;
-}
+} */
