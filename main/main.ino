@@ -25,7 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <rom/rtc.h>
 #include "t_beam.h"
 
-uint8_t txBuffer[9];
+uint8_t txBuffer[11];
 uint8_t tGPS[9];
 TinyGPSLocation mylocation;
 T_beam t_beam = T_beam(); 
@@ -33,6 +33,7 @@ T_beam t_beam = T_beam();
 uint32_t LatitudeBinary, LongitudeBinary;
 uint16_t altitudeGps;
 uint8_t hdopGps;
+uint16_t vbat;
 char t[32]; // used to sprintf for Serial output
 
 // Message counter, stored in RTC memory, survives deep sleep
@@ -78,6 +79,9 @@ void buildPacket(float lat, float lng)
   
   sprintf(t, "Lng: %f", lng);
   Serial.println(t);
+
+  vbat = (float)(analogRead(BAT_PIN)) / 4095*2*3.3*1.1*100 ;
+  Serial.println(String(vbat));
   
   txBuffer[0] = ( LatitudeBinary >> 16 ) & 0xFF;
   txBuffer[1] = ( LatitudeBinary >> 8 ) & 0xFF;
@@ -93,6 +97,10 @@ void buildPacket(float lat, float lng)
 
   hdopGps = 10/10;
   txBuffer[8] = hdopGps & 0xFF;
+
+  txBuffer[9] = ((vbat*100)>> 8 ) & 0xFF;
+  txBuffer[10] = (vbat*100) & 0xFF;
+  
 }
 
 
@@ -165,6 +173,7 @@ void setup() {
     // Buttons & LED
     pinMode(BUTTON_PIN, INPUT_PULLUP);
     pinMode(LED_PIN, OUTPUT);
+    pinMode(BAT_PIN, INPUT);
 
     // Hello
     DEBUG_MSG(APP_NAME " " APP_VERSION "\n");
