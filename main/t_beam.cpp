@@ -1,5 +1,5 @@
 #include "t_beam.h"
-#include "configuration.h"
+
 T_beam::T_beam(){
   gps = new Neo6m();
   lora = new TTGOLoRa();
@@ -15,9 +15,7 @@ TinyGPSLocation T_beam::getLocation(){
 
 
 //put the t-beam sleep with the least amount off power consumption as possible
-void T_beam::low_power_deep_sleep_timer(){
-   Serial.println("try to sleep gps and lora!");
-
+void T_beam::low_power_deep_sleep_timer(uint64_t time_in_us){
   gps->enable_sleep();
   lora->enable_sleep();
   //isolateGPIO();
@@ -25,14 +23,7 @@ void T_beam::low_power_deep_sleep_timer(){
   turnOffBluetooth();
 
   //enable
-  Serial.println("sleeping for" + SEND_INTERVAL);
-  Serial.flush();
-
-  //turnOffRTC();
-    
-  //esp_sleep_enable_timer_wakeup(time_in_us);
-  esp_sleep_enable_timer_wakeup(SEND_INTERVAL*1000);
-  
+  esp_sleep_enable_timer_wakeup(time_in_us);
   esp_deep_sleep_start();
 }
 

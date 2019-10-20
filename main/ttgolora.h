@@ -1,7 +1,7 @@
 #ifndef TTGOLoRa_h
 #define TTGOLoRa_h
 
-//#include "LoRa.h"
+#include "LoRa.h"
 #include <SPI.h>
 
 #define SCK     5    // GPIO5  -- SX1278's SCK

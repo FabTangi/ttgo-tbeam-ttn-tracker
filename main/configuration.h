@@ -1,6 +1,6 @@
 /*
 
-TTGO-BEAM based TTN Tracker
+TTGO T-BEAM Tracker for The Things Network
 
 Copyright (C) 2018 by Xose Pérez <xose dot perez at gmail dot com>
 
@@ -26,7 +26,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <Arduino.h>
 #include <lmic.h>
-
 void ttn_register(void (*callback)(uint8_t message));
 
 // -----------------------------------------------------------------------------
@@ -34,23 +33,38 @@ void ttn_register(void (*callback)(uint8_t message));
 // -----------------------------------------------------------------------------
 
 #define APP_NAME                "TTN MAP-TRACK"
-#define APP_VERSION             "1.0.0"
+#define APP_VERSION             "1.1.0"
 
 // -----------------------------------------------------------------------------
 // Configuration
 // -----------------------------------------------------------------------------
 
+// Select which T-Beam board is being used. Only uncomment one.
+//#define T_BEAM_V07  // AKA Rev0 (first board released)
+#define T_BEAM_V10  // AKA Rev1 (second board released)
+
+// Select the payload format. Change on TTN as well. Only uncomment one.
+#define PAYLOAD_USE_FULL
+// #define PAYLOAD_USE_CAYENNE
+
+// If using a single-channel gateway, uncomment this next option and set to your gateway's channel
+//#define SINGLE_CHANNEL_GATEWAY  0
+
+// If you are having difficulty sending messages to TTN after the first successful send,
+// uncomment the next option and experiment with values (~ 1 - 5)
+//#define CLOCK_ERROR             5
+
 #define DEBUG_PORT              Serial      // Serial debug port
 #define SERIAL_BAUD             115200      // Serial debug baud rate
 #define SLEEP_BETWEEN_MESSAGES  1           // Do sleep between messages
-#define SEND_INTERVAL           60000       // Sleep for these many millis
-#define MESSAGE_TO_SLEEP_DELAY  1000        // Time after message before going to sleep
+#define SEND_INTERVAL           300000       // Sleep for these many millis
+#define MESSAGE_TO_SLEEP_DELAY  5000        // Time after message before going to sleep
 #define LOGO_DELAY              5000        // Time to show logo on first boot
-#define LORAWAN_PORT            10          // Port the messages will be sent to
+#define LORAWAN_PORT            11          // Port the messages will be sent to
 #define LORAWAN_CONFIRMED_EVERY 0           // Send confirmed message every these many messages (0 means never)
 #define LORAWAN_SF              DR_SF7      // Spreading factor
 #define LORAWAN_ADR             0           // Enable ADR
-#define GPS_WAIT_FOR_LOCK       500        // Wait 5s after every boot for GPS lock
+#define GPS_WAIT_FOR_LOCK       30000        // Wait 30s after every boot for GPS lock
 
 // -----------------------------------------------------------------------------
 // DEBUG
@@ -75,28 +89,37 @@ void ttn_register(void (*callback)(uint8_t message));
 // General
 // -----------------------------------------------------------------------------
 
+#define I2C_SDA         21
+#define I2C_SCL         22
+#define LED_PIN         14
+
+#if defined(T_BEAM_V07)
 #define BUTTON_PIN      39
-#define LED_PIN         25
-#define GPS_LED         14
-#define BAT_PIN         35
+#elif defined(T_BEAM_V10)
+#define BUTTON_PIN      38
+#endif
 
 // -----------------------------------------------------------------------------
 // OLED
 // -----------------------------------------------------------------------------
 
-#define OLED_ADDRESS    0x3C
-#define OLED_SDA        4 //21
-#define OLED_SCL        15 //22
-
+#define SSD1306_ADDRESS 0x3C
 
 // -----------------------------------------------------------------------------
 // GPS
 // -----------------------------------------------------------------------------
 
 #define GPS_SERIAL_NUM  1
-#define GPS_RX_PIN      22
-#define GPS_TX_PIN      23
 #define GPS_BAUDRATE    9600
+#define USE_GPS         1
+
+#if defined(T_BEAM_V07)
+#define GPS_RX_PIN      12
+#define GPS_TX_PIN      15
+#elif defined(T_BEAM_V10)
+#define GPS_RX_PIN      34
+#define GPS_TX_PIN      12
+#endif
 
 // -----------------------------------------------------------------------------
 // LoRa SPI
@@ -106,7 +129,16 @@ void ttn_register(void (*callback)(uint8_t message));
 #define MISO_GPIO       19
 #define MOSI_GPIO       27
 #define NSS_GPIO        18
-#define RESET_GPIO      14
+#define RESET_GPIO      23
 #define DIO0_GPIO       26
 #define DIO1_GPIO       33
 #define DIO2_GPIO       32
+
+// -----------------------------------------------------------------------------
+// AXP192 (Rev1-specific options)
+// -----------------------------------------------------------------------------
+
+#define AXP192_SLAVE_ADDRESS  0x34
+#define GPS_POWER_CTRL_CH     3
+#define LORA_POWER_CTRL_CH    2
+#define PMU_IRQ               35

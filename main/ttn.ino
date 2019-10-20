@@ -69,18 +69,45 @@ void _ttn_callback(uint8_t message) {
     }
 }
 
+void forceTxSingleChannelDr() {
+    // Disables all channels, except for the one defined by SINGLE_CHANNEL_GATEWAY
+    // This only affects uplinks; for downlinks the default
+    // channels or the configuration from the OTAA Join Accept are used.
+    #ifdef SINGLE_CHANNEL_GATEWAY
+    for(int i=0; i<9; i++) { // For EU; for US use i<71
+        if(i != SINGLE_CHANNEL_GATEWAY) {
+            LMIC_disableChannel(i);
+        }
+    }
+    #endif
+
+    // Set data rate (SF) and transmit power for uplink
+    ttn_sf(LORAWAN_SF);
+}
+
 // LMIC library will call this method when an event is fired
 void onEvent(ev_t event) {
-    if (EV_TXCOMPLETE == event) {
-
+    switch(event) {
+    case EV_JOINED:
+        #ifdef SINGLE_CHANNEL_GATEWAY
+        forceTxSingleChannelDr();
+        #endif
+        break;
+    case EV_TXCOMPLETE:
+        Serial.println(F("EV_TXCOMPLETE (inc. RX win. wait)"));
         if (LMIC.txrxFlags & TXRX_ACK) {
+            Serial.println(F("Received ack"));
             _ttn_callback(EV_ACK);
         }
-
         if (LMIC.dataLen) {
+            Serial.print(F("Data Received: "));
+            Serial.write(LMIC.frame+LMIC.dataBeg, LMIC.dataLen);
+            Serial.println();
             _ttn_callback(EV_RESPONSE);
         }
-
+        break;
+    default:
+        break;
     }
 
     // Send message callbacks
@@ -107,9 +134,8 @@ void ttn_response(uint8_t * buffer, size_t len) {
 
 bool ttn_setup() {
     // SPI interface
-    DEBUG_MSG("SPI1\n");
     SPI.begin(SCK_GPIO, MISO_GPIO, MOSI_GPIO, NSS_GPIO);
-    DEBUG_MSG("SPI2\n");
+
     // LMIC init
     return ( 1 == os_init_ex( (const void *) &lmic_pins ) );
 }
@@ -118,7 +144,11 @@ void ttn_join() {
     // Reset the MAC state. Session and pending data transfers will be discarded.
     LMIC_reset();
 
-    #ifdef USE_ABP
+    #ifdef CLOCK_ERROR
+    LMIC_setClockError(MAX_CLOCK_ERROR * CLOCK_ERROR / 100);
+    #endif
+
+    #if defined(USE_ABP)
 
         // Set static session parameters. Instead of dynamically establishing a session
         // by joining the network, precomputed session parameters are be provided.
@@ -158,18 +188,6 @@ void ttn_join() {
 
         #endif
 
-        // If using a mono-channel gateway disable all channels
-        // but the one the gateway is listening to
-        //LMIC_disableChannel(0);
-        //LMIC_disableChannel(1);
-        //LMIC_disableChannel(2);
-        //LMIC_disableChannel(3);
-        //LMIC_disableChannel(4);
-        //LMIC_disableChannel(5);
-        //LMIC_disableChannel(6);
-        //LMIC_disableChannel(7);
-        //LMIC_disableChannel(8);
-
         // TTN defines an additional channel at 869.525Mhz using SF9 for class B
         // devices' ping slots. LMIC does not have an easy way to define set this
         // frequency and support for class B is spotty and untested, so this
@@ -181,13 +199,29 @@ void ttn_join() {
         // TTN uses SF9 for its RX2 window.
         LMIC.dn2Dr = DR_SF9;
 
+        #ifdef SINGLE_CHANNEL_GATEWAY
+        forceTxSingleChannelDr();
+        #else
         // Set default rate and transmit power for uplink (note: txpow seems to be ignored by the library)
-        LMIC_setDrTxpow(DR_SF7, 14);
+        ttn_sf(LORAWAN_SF);
+        #endif
 
         // Trigger a false joined
         _ttn_callback(EV_JOINED);
 
-    #endif // USE_ABP
+    #elif defined(USE_OTAA)
+
+      #ifdef SINGLE_CHANNEL_GATEWAY
+      // Make LMiC initialize the default channels, choose a channel, and
+      // schedule the OTAA join
+      LMIC_startJoining();
+
+      // LMiC will already have decided to send on one of the 3 default
+      // channels; ensure it uses the one we want
+      LMIC.txChnl = SINGLE_CHANNEL_GATEWAY;
+      #endif
+
+    #endif
 }
 
 void ttn_sf(unsigned char sf) {
@@ -212,7 +246,7 @@ void ttn_send(uint8_t * data, uint8_t data_size, uint8_t port, bool confirmed){
     // Prepare upstream data transmission at the next possible time.
     // Parameters are port, data, length, confirmed
     LMIC_setTxData2(port, data, data_size, confirmed ? 1 : 0);
-            
+
     _ttn_callback(EV_QUEUED);
 }
 

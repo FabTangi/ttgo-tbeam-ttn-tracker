@@ -40,13 +40,13 @@ void _screen_header() {
     display->drawString(0, 2, buffer);
 
     // Datetime
-//    gps_time(buffer, sizeof(buffer));
+    gps_time(buffer, sizeof(buffer));
     display->setTextAlignment(TEXT_ALIGN_CENTER);
     display->drawString(display->getWidth()/2, 2, buffer);
 
     // Satellite count
     display->setTextAlignment(TEXT_ALIGN_RIGHT);
-//    display->drawString(display->getWidth() - SATELLITE_IMAGE_WIDTH - 4, 2, itoa(gps_sats(), buffer, 10));
+    display->drawString(display->getWidth() - SATELLITE_IMAGE_WIDTH - 4, 2, itoa(gps_sats(), buffer, 10));
     display->drawXbm(display->getWidth() - SATELLITE_IMAGE_WIDTH, 0, SATELLITE_IMAGE_WIDTH, SATELLITE_IMAGE_HEIGHT, SATELLITE_IMAGE);
 }
 
@@ -93,7 +93,7 @@ void screen_update() {
 
 void screen_setup() {
     // Display instance
-    display = new SSD1306Wire(OLED_ADDRESS, OLED_SDA, OLED_SCL);
+    display = new SSD1306Wire(SSD1306_ADDRESS, I2C_SDA, I2C_SCL);
     display->init();
     display->flipScreenVertically();
     display->setFont(Custom_ArialMT_Plain_10);
@@ -103,6 +103,23 @@ void screen_setup() {
 }
 
 void screen_loop() {
+    #ifdef T_BEAM_V10
+    if (axp192_found && pmu_irq) {
+        pmu_irq = false;
+        axp.readIRQ();
+        if (axp.isChargingIRQ()) {
+            baChStatus = "Charging";
+        } else {
+            baChStatus = "No Charging";
+        }
+        if (axp.isVbusRemoveIRQ()) {
+            baChStatus = "No Charging";
+        }
+        digitalWrite(2, !digitalRead(2));
+        axp.clearIRQ();
+    }
+    #endif
+
     display->clear();
     _screen_header();
     display->drawLogBuffer(0, SCREEN_HEADER_HEIGHT);
