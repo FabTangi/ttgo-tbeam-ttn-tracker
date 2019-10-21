@@ -26,6 +26,7 @@
 #include "soc/rtc.h"
 #include <TinyGPS++.h>
 #include <Wire.h>
+//#include <LowPower.h>
 
 #ifdef T_BEAM_V10
 #include "axp20x.h"
@@ -89,8 +90,15 @@ void sleep() {
   // Turn off screen
   screen_off();
 
+  //axp.setPowerOutPut(AXP192_LDO1, AXP202_OFF); // GPS Backup battery
   axp.setPowerOutPut(AXP192_LDO2, AXP202_OFF); // Lora on T-Beam V1.0
   axp.setPowerOutPut(AXP192_LDO3, AXP202_OFF); // Gps on T-Beam V1.0
+  //axp.setPowerOutPut(AXP192_DCDC1, AXP202_OFF); // OLED on T-Beam v1.0 still 15ma if off and not recovering of not replugged
+  axp.setPowerOutPut(AXP192_DCDC2, AXP202_OFF); // unused
+  axp.setPowerOutPut(AXP192_EXTEN, AXP202_OFF);//no effect still 15mA in sleep...
+  //axp.setPowerOutPut(AXP192_DCDC3, AXP202_OFF); // DCDC3 0.7-3.5V @ 700mA max -> ESP32 (keep this on!) //Still 0.17 if off !!!
+  //axp.setChgLEDMode(AXP20X_LED_OFF);
+  axp.setChgLEDMode(AXP20X_LED_BLINK_1HZ); //still 15mA... no need to power off ! :)
 
   // Set the user button to wake the board
   sleep_interrupt(BUTTON_PIN, LOW);
@@ -191,12 +199,19 @@ void setup() {
   scanI2Cdevice();
   axp192_found = true;
   if (axp192_found) {
+
+     // axp.setDCDC1Voltage(3300);
+     // axp.setChgLEDMode(AXP20X_LED_LOW_LEVEL);
+     // axp.adc1Enable(AXP202_BATT_CUR_ADC1, 1);
+     //axp.setPowerOutPut()
+      
+      
       if (!axp.begin(Wire, AXP192_SLAVE_ADDRESS)) {
           Serial.println("AXP192 Begin PASS");
       } else {
           Serial.println("AXP192 Begin FAIL");
       }
-      // axp.setChgLEDMode(LED_BLINK_4HZ);
+      //axp.setChgLEDMode(LED_BLINK_1HZ);
       Serial.printf("DCDC1: %s\n", axp.isDCDC1Enable() ? "ENABLE" : "DISABLE");
       Serial.printf("DCDC2: %s\n", axp.isDCDC2Enable() ? "ENABLE" : "DISABLE");
       Serial.printf("LDO2: %s\n", axp.isLDO2Enable() ? "ENABLE" : "DISABLE");
@@ -210,7 +225,8 @@ void setup() {
       axp.setPowerOutPut(AXP192_DCDC2, AXP202_ON);
       axp.setPowerOutPut(AXP192_EXTEN, AXP202_ON);
       axp.setPowerOutPut(AXP192_DCDC1, AXP202_ON); // OLED on T-Beam v1.0
-      axp.setDCDC1Voltage(3300);
+      axp.setDCDC1Voltage(3300);            
+      axp.setChgLEDMode(AXP20X_LED_BLINK_4HZ);
 
       Serial.printf("DCDC1: %s\n", axp.isDCDC1Enable() ? "ENABLE" : "DISABLE");
       Serial.printf("DCDC2: %s\n", axp.isDCDC2Enable() ? "ENABLE" : "DISABLE");
@@ -231,6 +247,7 @@ void setup() {
       if (axp.isChargeing()) {
           baChStatus = "Charging";
       }
+
   } else {
       Serial.println("AXP192 not found");
   }

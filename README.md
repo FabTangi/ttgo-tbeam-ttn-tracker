@@ -15,10 +15,11 @@ NOTE: There are now 2 versions of the TTGO T-BEAM, the first version (Rev0) and 
 
 2. Install the Arduino IDE libraries:
 
-   * [mcci-catena/arduino-lmic](https://github.com/mcci-catena/arduino-lmic) (for Rev0 and Rev1)
-   * [mikalhart/TinyGPSPlus](https://github.com/mikalhart/TinyGPSPlus) (for Rev0 and Rev1)
+   * [mcci-catena/arduino-lmic](https://github.com/mcci-catena/arduino-lmic) (for Rev0 and Rev1). Search for LMIC LoraWAN 3.0.99 seems OK
+   * [mikalhart/TinyGPSPlus](https://github.com/mikalhart/TinyGPSPlus) (for Rev0 and Rev1) To be downloaded in libraries folder
    * [ThingPulse/esp8266-oled-ssd1306](https://github.com/ThingPulse/esp8266-oled-ssd1306) (for Rev0 and Rev1)
-   * [lewisxhe/AXP202X_Library](https://github.com/lewisxhe/AXP202X_Library) (for Rev1 only)
+   * [lewisxhe/AXP202X_Library](https://github.com/lewisxhe/AXP202X_Library) (for Rev1 only) done by git clone https://github.com/lewisxhe/AXP202X_Library.git in libraries folder
+
 
 3. Copy the contents of the project file ```main/lmic_project_config.h``` to the library file ```arduino-lmic/project_config/lmic_project_config.h``` and uncomment the proper frequency for your region.
 
