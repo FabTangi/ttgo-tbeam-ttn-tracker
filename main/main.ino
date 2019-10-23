@@ -104,7 +104,12 @@ void sleep() {
   Wire.endTransmission(); // shutdown/power off I2C hardware, 
   pinMode(SDA,INPUT); // needed because Wire.end() enables pullups, power Saving
   pinMode(SCL,INPUT);
-  
+
+  int temp = axp.getTemp();
+  Serial.println(temp);
+  Serial.println("\n axp shutting down \n");
+  axp.shutdown();
+  Serial.println("\n axp shutted down \n");
   
   axp.setChgLEDMode(AXP20X_LED_OFF);
   //axp.setChgLEDMode(AXP20X_LED_BLINK_1HZ); //still 15mA... no need to power off ! :)
