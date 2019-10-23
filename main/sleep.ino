@@ -20,6 +20,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <esp_sleep.h>
+//#include "esp_deep_sleep.h"
+//wifi and bluetooth libraries
+/*
+#include <esp_wifi.h>
+#include <esp_bt.h>
+#include <esp_bt_main.h>
+#include <esp_bt.h>
+*/
+//rtc libraries
+#include "driver/rtc_io.h"
 
 void sleep_interrupt(uint8_t gpio, uint8_t mode) {
     esp_sleep_enable_ext0_wakeup((gpio_num_t) gpio, mode);
@@ -30,8 +40,23 @@ void sleep_interrupt_mask(uint64_t mask, uint8_t mode) {
 }
 
 void sleep_millis(uint64_t ms) {
+
+       /*removedn make rebooting
+   esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_FAST_MEM, ESP_PD_OPTION_OFF);
+   esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_SLOW_MEM, ESP_PD_OPTION_OFF);
+   esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_OFF);
+    //Serial.println("Configured all RTC Peripherals to be powered down in sleep");
+    //esp_wifi_stop();
+    //esp_wifi_deinit();
+    //esp_bluedroid_disable();
+    //esp_bluedroid_deinit();
+    //esp_bt_controller_disable();
+    //esp_bt_controller_deinit();
+*/
     esp_sleep_enable_timer_wakeup(ms * 1000);
+  
     esp_deep_sleep_start();
+    //esp_light_sleep_start(); //17mA
 }
 
 void sleep_seconds(uint32_t seconds) {

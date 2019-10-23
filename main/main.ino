@@ -28,8 +28,10 @@
 #include <Wire.h>
 //#include <LowPower.h>
 
+
 #ifdef T_BEAM_V10
 #include "axp20x.h"
+
 AXP20X_Class axp;
 bool pmu_irq = false;
 String baChStatus = "No charging";
@@ -87,19 +89,27 @@ void sleep() {
   // Wait for MESSAGE_TO_SLEEP_DELAY millis to sleep
   delay(MESSAGE_TO_SLEEP_DELAY);
 
-  // Turn off screen
+    // Turn off screen
   screen_off();
+ 
 
   //axp.setPowerOutPut(AXP192_LDO1, AXP202_OFF); // GPS Backup battery
   axp.setPowerOutPut(AXP192_LDO2, AXP202_OFF); // Lora on T-Beam V1.0
-  axp.setPowerOutPut(AXP192_LDO3, AXP202_OFF); // Gps on T-Beam V1.0
-  //axp.setPowerOutPut(AXP192_DCDC1, AXP202_OFF); // OLED on T-Beam v1.0 still 15ma if off and not recovering of not replugged
+  axp.setPowerOutPut(AXP192_LDO3, AXP202_OFF); // Gps on T-Beam V1.0  
   axp.setPowerOutPut(AXP192_DCDC2, AXP202_OFF); // unused
   axp.setPowerOutPut(AXP192_EXTEN, AXP202_OFF);//no effect still 15mA in sleep...
+  
   //axp.setPowerOutPut(AXP192_DCDC3, AXP202_OFF); // DCDC3 0.7-3.5V @ 700mA max -> ESP32 (keep this on!) //Still 0.17 if off !!!
-  //axp.setChgLEDMode(AXP20X_LED_OFF);
-  axp.setChgLEDMode(AXP20X_LED_BLINK_1HZ); //still 15mA... no need to power off ! :)
+  axp.setPowerOutPut(AXP192_DCDC1, AXP202_OFF); // OLED on T-Beam v1.0 still 15ma if off and not recovering of not replugged or use 3 lines below 
+  Wire.endTransmission(); // shutdown/power off I2C hardware, 
+  pinMode(SDA,INPUT); // needed because Wire.end() enables pullups, power Saving
+  pinMode(SCL,INPUT);
+  
+  
+  axp.setChgLEDMode(AXP20X_LED_OFF);
+  //axp.setChgLEDMode(AXP20X_LED_BLINK_1HZ); //still 15mA... no need to power off ! :)
 
+  //axp.setShutdownTime(3000); //no change... 15mA
   // Set the user button to wake the board
   sleep_interrupt(BUTTON_PIN, LOW);
 
@@ -107,6 +117,7 @@ void sleep() {
   // We sleep for the interval between messages minus the current millis
   // this way we distribute the messages evenly every SEND_INTERVAL millis
   uint32_t sleep_for = (millis() < SEND_INTERVAL) ? SEND_INTERVAL - millis() : SEND_INTERVAL;
+  Serial.println("\n going to sleep \n");
   sleep_millis(sleep_for);
 
 #endif
@@ -191,9 +202,11 @@ void setup() {
   DEBUG_PORT.begin(SERIAL_BAUD);
   #endif
 
+  
   delay(1000);
  
   rtc_clk_cpu_freq_set(RTC_CPU_FREQ_80M); 
+
   #ifdef T_BEAM_V10
   Wire.begin(I2C_SDA, I2C_SCL);
   scanI2Cdevice();
@@ -226,7 +239,9 @@ void setup() {
       axp.setPowerOutPut(AXP192_EXTEN, AXP202_ON);
       axp.setPowerOutPut(AXP192_DCDC1, AXP202_ON); // OLED on T-Beam v1.0
       axp.setDCDC1Voltage(3300);            
-      axp.setChgLEDMode(AXP20X_LED_BLINK_4HZ);
+      axp.setChgLEDMode(AXP20X_LED_OFF);
+      //axp.setChgLEDMode(AXP20X_LED_BLINK_4HZ);
+
 
       Serial.printf("DCDC1: %s\n", axp.isDCDC1Enable() ? "ENABLE" : "DISABLE");
       Serial.printf("DCDC2: %s\n", axp.isDCDC2Enable() ? "ENABLE" : "DISABLE");
