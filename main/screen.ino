@@ -47,7 +47,9 @@ void _screen_header() {
     // Satellite count
     display->setTextAlignment(TEXT_ALIGN_RIGHT);
     display->drawString(display->getWidth() - SATELLITE_IMAGE_WIDTH - 4, 2, itoa(gps_sats(), buffer, 10));
-    display->drawXbm(display->getWidth() - SATELLITE_IMAGE_WIDTH, 0, SATELLITE_IMAGE_WIDTH, SATELLITE_IMAGE_HEIGHT, SATELLITE_IMAGE);
+    display->drawXbm(display->getWidth() - SATELLITE_IMAGE_WIDTH, 0, SATELLITE_IMAGE_WIDTH, SATELLITE_IMAGE_HEIGHT, SATELLITE_IMAGE);   
+    
+    
 }
 
 void screen_show_logo() {
@@ -109,12 +111,15 @@ void screen_loop() {
         axp.readIRQ();
         if (axp.isChargingIRQ()) {
             baChStatus = "Charging";
+            Serial.println("Charging");
+            screen_print("Charging");
         } else {
             baChStatus = "No Charging";
         }
         if (axp.isVbusRemoveIRQ()) {
             baChStatus = "No Charging";
         }
+          
         digitalWrite(2, !digitalRead(2));
         axp.clearIRQ();
     }
@@ -122,6 +127,6 @@ void screen_loop() {
 
     display->clear();
     _screen_header();
-    display->drawLogBuffer(0, SCREEN_HEADER_HEIGHT);
+    display->drawLogBuffer(0, SCREEN_HEADER_HEIGHT);              
     display->display();
 }

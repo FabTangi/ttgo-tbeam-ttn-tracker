@@ -26,6 +26,8 @@
 #include "soc/rtc.h"
 #include <TinyGPS++.h>
 #include <Wire.h>
+#include <Button2.h>
+#include <Ticker.h>
 //#include <LowPower.h>
 
 
@@ -50,6 +52,17 @@ RTC_DATA_ATTR uint32_t count = 0;
   // CAYENNE DF
   static uint8_t txBuffer[11] = {0x03, 0x88, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 #endif
+
+
+#define BUTTONS_MAP {38}
+
+Button2 *pBtns = nullptr;
+uint8_t g_btns[] =  BUTTONS_MAP;
+
+#define ARRARY_SIZE(a)   (sizeof(a) / sizeof(a[0]))
+
+Ticker btnTick;
+uint8_t program = 0;
 
 // -----------------------------------------------------------------------------
 // Application
@@ -137,7 +150,7 @@ void callback(uint8_t message) {
   if (EV_LINK_DEAD == message) screen_print("TTN link dead\n");
   if (EV_ACK == message) screen_print("ACK received\n");
   if (EV_PENDING == message) screen_print("Message discarded\n");
-  if (EV_QUEUED == message) screen_print("Message queued\n");
+  //if (EV_QUEUED == message) screen_print("Message queued\n");
 
   if (EV_TXCOMPLETE == message) {
     screen_print("Message sent\n");
@@ -201,6 +214,58 @@ void scanI2Cdevice(void)
         Serial.println("done\n");
 }
 
+/************************************
+ *      BUTTON
+ * *********************************/
+void button_callback(Button2 &b)
+{
+    for (int i = 0; i < ARRARY_SIZE(g_btns); ++i) {
+        if (pBtns[i] == b) {
+            if (ssd1306_found) {
+//                ui.nextFrame();
+            }
+            program = program + 1 > 2 ? 0 : program + 1;
+        }
+    }
+}
+
+void button_loop()
+{
+    for (int i = 0; i < ARRARY_SIZE(g_btns); ++i) {
+        pBtns[i].loop();
+    }
+}
+
+void button_init()
+{
+    uint8_t args = ARRARY_SIZE(g_btns);
+    pBtns = new Button2 [args];
+    for (int i = 0; i < args; ++i) {
+        pBtns[i] = Button2(g_btns[i]);
+        pBtns[i].setPressedHandler(button_callback);
+    }
+    pBtns[0].setLongClickHandler([](Button2 & b) {
+        if (ssd1306_found) {
+//            oled.displayOff();
+        }
+        Serial.println("Go to Sleep");
+        //screen_print("Go to Sleep");
+        axp.setChgLEDMode(AXP20X_LED_OFF);
+        axp.setPowerOutPut(AXP192_LDO2, AXP202_OFF);
+        axp.setPowerOutPut(AXP192_LDO3, AXP202_OFF);
+        axp.setPowerOutPut(AXP192_DCDC2, AXP202_OFF);
+        // axp.setPowerOutPut(AXP192_DCDC3, AXP202_OFF);
+        axp.setPowerOutPut(AXP192_DCDC1, AXP202_OFF);
+        axp.setPowerOutPut(AXP192_EXTEN, AXP202_OFF);
+
+        delay(200);
+        // Turn off screen
+        screen_off();
+        esp_sleep_enable_ext1_wakeup(GPIO_SEL_38, ESP_EXT1_WAKEUP_ALL_LOW);
+        esp_deep_sleep_start();
+    });
+}
+
 void setup() {
   // Debug
   #ifdef DEBUG_PORT
@@ -218,11 +283,7 @@ void setup() {
   axp192_found = true;
   if (axp192_found) {
 
-     // axp.setDCDC1Voltage(3300);
-     // axp.setChgLEDMode(AXP20X_LED_LOW_LEVEL);
-     // axp.adc1Enable(AXP202_BATT_CUR_ADC1, 1);
-     //axp.setPowerOutPut()
-      
+        
       
       if (!axp.begin(Wire, AXP192_SLAVE_ADDRESS)) {
           Serial.println("AXP192 Begin PASS");
@@ -243,7 +304,10 @@ void setup() {
       axp.setPowerOutPut(AXP192_DCDC2, AXP202_ON);
       axp.setPowerOutPut(AXP192_EXTEN, AXP202_ON);
       axp.setPowerOutPut(AXP192_DCDC1, AXP202_ON); // OLED on T-Beam v1.0
-      axp.setDCDC1Voltage(3300);            
+      axp.setDCDC1Voltage(3300);
+      axp.setDCDC1Voltage(3300);  //esp32 core VDD    3v3
+      axp.setLDO2Voltage(3300);   //LORA VDD set 3v3
+      axp.setLDO3Voltage(3300);   //GPS VDD      3v3            
       axp.setChgLEDMode(AXP20X_LED_OFF);
       //axp.setChgLEDMode(AXP20X_LED_BLINK_4HZ);
 
@@ -264,9 +328,7 @@ void setup() {
       axp.enableIRQ(AXP202_VBUS_REMOVED_IRQ | AXP202_VBUS_CONNECT_IRQ | AXP202_BATT_REMOVED_IRQ | AXP202_BATT_CONNECT_IRQ, 1);
       axp.clearIRQ();
 
-      if (axp.isChargeing()) {
-          baChStatus = "Charging";
-      }
+    
 
   } else {
       Serial.println("AXP192 not found");
@@ -277,6 +339,8 @@ void setup() {
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   pinMode(LED_PIN, OUTPUT);
 
+  button_init();
+  
   // Hello
   DEBUG_MSG(APP_NAME " " APP_VERSION "\n");
 
@@ -306,17 +370,22 @@ void setup() {
   ttn_join();
   ttn_sf(LORAWAN_SF);
   ttn_adr(LORAWAN_ADR);
+
+  btnTick.attach_ms(20, button_loop);
 }
 
 void loop() {
   gps_loop();
   ttn_loop();
-  screen_loop();
+  screen_loop();   
 
   // Send every SEND_INTERVAL millis
   static uint32_t last = 0;
   static bool first = true;
-  if (0 == last || millis() - last > SEND_INTERVAL) {
+  if (0 == last || millis() - last > SEND_INTERVAL) {  
+
+
+    
     if (0 < gps_hdop() && gps_hdop() < 50 && gps_latitude() != 0 && gps_longitude() != 0) {
       last = millis();
       first = false;
@@ -331,5 +400,23 @@ void loop() {
         sleep();
       }
     }
+
+if (axp.isChargeing()) {
+            baChStatus = "Charging";
+            Serial.printf("Charging\n");
+            //screen_print("Charging : ");
+            
+        }
+        static char volbuffer[128];
+        if (axp.isBatteryConnect()) {
+          Serial.printf("Batt Connected\n");
+          Serial.printf("%f\n",axp.getBattVoltage());
+          
+          snprintf(volbuffer, sizeof(volbuffer), "%.2fV/%.2fmA\n", axp.getBattVoltage() / 1000.0, axp.isChargeing() ? axp.getBattChargeCurrent() : axp.getBattDischargeCurrent());
+
+          screen_print(volbuffer);
+      }
+
+    
   }
 }
