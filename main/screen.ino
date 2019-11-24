@@ -48,7 +48,12 @@ void _screen_header() {
     display->setTextAlignment(TEXT_ALIGN_RIGHT);
     display->drawString(display->getWidth() - SATELLITE_IMAGE_WIDTH - 4, 2, itoa(gps_sats(), buffer, 10));
     display->drawXbm(display->getWidth() - SATELLITE_IMAGE_WIDTH, 0, SATELLITE_IMAGE_WIDTH, SATELLITE_IMAGE_HEIGHT, SATELLITE_IMAGE);   
-    
+
+    static char volbuffer[128];
+    if (axp.isBatteryConnect()) {        
+      snprintf(volbuffer, sizeof(volbuffer), "%.2fV/%.2fmA\n", axp.getBattVoltage() / 1000.0, axp.isChargeing() ? axp.getBattChargeCurrent() : axp.getBattDischargeCurrent());
+      display->drawString(0, 3, volbuffer);
+        }
     
 }
 
@@ -119,7 +124,8 @@ void screen_loop() {
         if (axp.isVbusRemoveIRQ()) {
             baChStatus = "No Charging";
         }
-          
+
+        
         digitalWrite(2, !digitalRead(2));
         axp.clearIRQ();
     }

@@ -47,7 +47,7 @@ RTC_DATA_ATTR uint32_t count = 0;
 
 #if defined(PAYLOAD_USE_FULL)
   // includes number of satellites and accuracy
-  uint8_t txBuffer[10];
+  uint8_t txBuffer[16];
 #elif defined(PAYLOAD_USE_CAYENNE)
   // CAYENNE DF
   static uint8_t txBuffer[11] = {0x03, 0x88, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
@@ -69,13 +69,18 @@ uint8_t program = 0;
 // -----------------------------------------------------------------------------
 
 void send() {
-  char buffer[40];
+  char buffer[40];   
+  if (axp.isBatteryConnect()) {        
+      snprintf(buffer, sizeof(buffer), "%.2fV/%.2fmA/%.2f°C\n", axp.getBattVoltage() / 1000.0, axp.isChargeing() ? axp.getBattChargeCurrent() : axp.getBattDischargeCurrent(), axp.getTemp());
+      screen_print(buffer);
+      }  
   snprintf(buffer, sizeof(buffer), "Latitude: %10.6f\n", gps_latitude());
   screen_print(buffer);
   snprintf(buffer, sizeof(buffer), "Longitude: %10.6f\n", gps_longitude());
   screen_print(buffer);
   snprintf(buffer, sizeof(buffer), "Error: %4.2fm\n", gps_hdop());
   screen_print(buffer);
+
 
   buildPacket(txBuffer);
 
@@ -245,12 +250,20 @@ void button_init()
         pBtns[i].setPressedHandler(button_callback);
     }
     pBtns[0].setLongClickHandler([](Button2 & b) {
-        if (ssd1306_found) {
-//            oled.displayOff();
-        }
-        Serial.println("Go to Sleep");
+        Serial.println("Go to Sleep");     
+        // Show the going to sleep message on the screen
+        char buffer[20];
+        snprintf(buffer, sizeof(buffer), "Sleeping until buttion is pressed\n");
+        screen_print(buffer);
+
+        // Wait for MESSAGE_TO_SLEEP_DELAY millis to sleep
+        delay(MESSAGE_TO_SLEEP_DELAY);
+
+        // Turn off screen
+        //screen_off();
+        
         //screen_print("Go to Sleep");
-        axp.setChgLEDMode(AXP20X_LED_OFF);
+        //axp.setChgLEDMode(AXP20X_LED_OFF);
         axp.setPowerOutPut(AXP192_LDO2, AXP202_OFF);
         axp.setPowerOutPut(AXP192_LDO3, AXP202_OFF);
         axp.setPowerOutPut(AXP192_DCDC2, AXP202_OFF);
@@ -259,8 +272,7 @@ void button_init()
         axp.setPowerOutPut(AXP192_EXTEN, AXP202_OFF);
 
         delay(200);
-        // Turn off screen
-        screen_off();
+
         esp_sleep_enable_ext1_wakeup(GPIO_SEL_38, ESP_EXT1_WAKEUP_ALL_LOW);
         esp_deep_sleep_start();
     });
@@ -271,19 +283,17 @@ void setup() {
   #ifdef DEBUG_PORT
   DEBUG_PORT.begin(SERIAL_BAUD);
   #endif
+    
+  delay(1000); 
 
-  
-  delay(1000);
- 
+  //Reduce clock speed to reduce power consumption.
   rtc_clk_cpu_freq_set(RTC_CPU_FREQ_80M); 
 
   #ifdef T_BEAM_V10
   Wire.begin(I2C_SDA, I2C_SCL);
   scanI2Cdevice();
   axp192_found = true;
-  if (axp192_found) {
-
-        
+  if (axp192_found) {       
       
       if (!axp.begin(Wire, AXP192_SLAVE_ADDRESS)) {
           Serial.println("AXP192 Begin PASS");
@@ -303,13 +313,13 @@ void setup() {
       axp.setPowerOutPut(AXP192_LDO3, AXP202_ON); // Gps on T-Beam V1.0
       axp.setPowerOutPut(AXP192_DCDC2, AXP202_ON);
       axp.setPowerOutPut(AXP192_EXTEN, AXP202_ON);
-      axp.setPowerOutPut(AXP192_DCDC1, AXP202_ON); // OLED on T-Beam v1.0
-      axp.setDCDC1Voltage(3300);
+      axp.setPowerOutPut(AXP192_DCDC1, AXP202_ON); // OLED on T-Beam v1.0      
       axp.setDCDC1Voltage(3300);  //esp32 core VDD    3v3
       axp.setLDO2Voltage(3300);   //LORA VDD set 3v3
       axp.setLDO3Voltage(3300);   //GPS VDD      3v3            
-      axp.setChgLEDMode(AXP20X_LED_OFF);
+      //axp.setChgLEDMode(AXP20X_LED_OFF);
       //axp.setChgLEDMode(AXP20X_LED_BLINK_4HZ);
+
 
 
       Serial.printf("DCDC1: %s\n", axp.isDCDC1Enable() ? "ENABLE" : "DISABLE");
@@ -392,30 +402,19 @@ void loop() {
       Serial.println("TRANSMITTING");
       send();
     } else {
-      if (first) {
+      if (first) {        
         screen_print("Waiting GPS lock\n");
         first = false;
-      }
+      } 
+  
+
+  
       if (millis() > GPS_WAIT_FOR_LOCK) {
         sleep();
       }
     }
 
-if (axp.isChargeing()) {
-            baChStatus = "Charging";
-            Serial.printf("Charging\n");
-            //screen_print("Charging : ");
-            
-        }
-        static char volbuffer[128];
-        if (axp.isBatteryConnect()) {
-          Serial.printf("Batt Connected\n");
-          Serial.printf("%f\n",axp.getBattVoltage());
-          
-          snprintf(volbuffer, sizeof(volbuffer), "%.2fV/%.2fmA\n", axp.getBattVoltage() / 1000.0, axp.isChargeing() ? axp.getBattChargeCurrent() : axp.getBattDischargeCurrent());
 
-          screen_print(volbuffer);
-      }
 
     
   }

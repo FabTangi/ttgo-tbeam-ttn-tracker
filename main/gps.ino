@@ -24,6 +24,9 @@
 uint32_t LatitudeBinary;
 uint32_t LongitudeBinary;
 uint16_t altitudeGps;
+uint16_t vbat;
+uint16_t ibat;
+uint16_t temp;
 uint8_t hdopGps;
 uint8_t sats;
 char t[32]; // used to sprintf for Serial output
@@ -68,13 +71,16 @@ static void gps_loop() {
 #if defined(PAYLOAD_USE_FULL)
 
     // More data than PAYLOAD_USE_CAYENNE
-    void buildPacket(uint8_t txBuffer[10])
+    void buildPacket(uint8_t txBuffer[16])
     {
         LatitudeBinary = ((_gps.location.lat() + 90) / 180.0) * 16777215;
         LongitudeBinary = ((_gps.location.lng() + 180) / 360.0) * 16777215;
         altitudeGps = _gps.altitude.meters();
         hdopGps = _gps.hdop.value() / 10;
         sats = _gps.satellites.value();
+        vbat = axp.getBattVoltage()/10;
+        temp = axp.getTemp()*100;
+        ibat = axp.isChargeing() ? axp.getBattChargeCurrent() : axp.getBattDischargeCurrent();
 
         sprintf(t, "Lat: %f", _gps.location.lat());
         Serial.println(t);
@@ -87,6 +93,13 @@ static void gps_loop() {
         sprintf(t, "Sats: %d", sats);
         Serial.println(t);
 
+        sprintf(t, "Temp: %d", temp);
+        Serial.println(t);
+        sprintf(t, "Volt: %d", vbat);
+        Serial.println(t);
+        sprintf(t, "Ampere: %d", ibat);
+        Serial.println(t);
+
         txBuffer[0] = ( LatitudeBinary >> 16 ) & 0xFF;
         txBuffer[1] = ( LatitudeBinary >> 8 ) & 0xFF;
         txBuffer[2] = LatitudeBinary & 0xFF;
@@ -97,6 +110,14 @@ static void gps_loop() {
         txBuffer[7] = altitudeGps & 0xFF;
         txBuffer[8] = hdopGps & 0xFF;
         txBuffer[9] = sats & 0xFF;
+        txBuffer[10] = ( vbat >> 8) & 0xFF;
+        txBuffer[11] = ( vbat ) & 0xFF;
+        txBuffer[12] = ( temp>> 8 ) & 0xFF;
+        txBuffer[13] = ( temp ) & 0xFF;
+        txBuffer[14] = ( ibat>> 8 ) & 0xFF;
+        txBuffer[15] = ( ibat ) & 0xFF;
+        
+        
     }
 
 #elif defined(PAYLOAD_USE_CAYENNE)
