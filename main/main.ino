@@ -251,19 +251,16 @@ void button_init()
     }
     pBtns[0].setLongClickHandler([](Button2 & b) {
         Serial.println("Go to Sleep");     
-        // Show the going to sleep message on the screen
-        char buffer[20];
-        snprintf(buffer, sizeof(buffer), "Sleeping until buttion is pressed\n");
-        screen_print(buffer);
+       // Show the going to sleep message on the screen
+        //char buffer[40];        
+        //screen_print("Sleeping until buttion is pressed\n");
 
         // Wait for MESSAGE_TO_SLEEP_DELAY millis to sleep
-        delay(MESSAGE_TO_SLEEP_DELAY);
-
-        // Turn off screen
-        //screen_off();
+        //delay(MESSAGE_TO_SLEEP_DELAY);
+       
+       
         
-        //screen_print("Go to Sleep");
-        //axp.setChgLEDMode(AXP20X_LED_OFF);
+        axp.setChgLEDMode(AXP20X_LED_OFF);
         axp.setPowerOutPut(AXP192_LDO2, AXP202_OFF);
         axp.setPowerOutPut(AXP192_LDO3, AXP202_OFF);
         axp.setPowerOutPut(AXP192_DCDC2, AXP202_OFF);
@@ -272,6 +269,10 @@ void button_init()
         axp.setPowerOutPut(AXP192_EXTEN, AXP202_OFF);
 
         delay(200);
+
+         
+        //Turn off screen
+        //screen_off();
 
         esp_sleep_enable_ext1_wakeup(GPIO_SEL_38, ESP_EXT1_WAKEUP_ALL_LOW);
         esp_deep_sleep_start();
@@ -317,7 +318,7 @@ void setup() {
       axp.setDCDC1Voltage(3300);  //esp32 core VDD    3v3
       axp.setLDO2Voltage(3300);   //LORA VDD set 3v3
       axp.setLDO3Voltage(3300);   //GPS VDD      3v3            
-      //axp.setChgLEDMode(AXP20X_LED_OFF);
+      axp.setChgLEDMode(AXP20X_LED_OFF);
       //axp.setChgLEDMode(AXP20X_LED_BLINK_4HZ);
 
 
