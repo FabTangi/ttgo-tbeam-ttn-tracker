@@ -257,7 +257,9 @@ void button_init()
 
         // Wait for MESSAGE_TO_SLEEP_DELAY millis to sleep
         //delay(MESSAGE_TO_SLEEP_DELAY);
-       
+
+        //Turn off screen
+        //screen_off();
        
         
         axp.setChgLEDMode(AXP20X_LED_OFF);
@@ -268,11 +270,10 @@ void button_init()
         axp.setPowerOutPut(AXP192_DCDC1, AXP202_OFF);
         axp.setPowerOutPut(AXP192_EXTEN, AXP202_OFF);
 
-        delay(200);
+        delay(2000);
 
          
-        //Turn off screen
-        //screen_off();
+
 
         esp_sleep_enable_ext1_wakeup(GPIO_SEL_38, ESP_EXT1_WAKEUP_ALL_LOW);
         esp_deep_sleep_start();
