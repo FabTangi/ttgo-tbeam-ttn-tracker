@@ -109,6 +109,7 @@ void sleep() {
 
     // Turn off screen
   screen_off();
+  LMIC_shutdown(); // cleanly shutdown the radio
  
 
   //axp.setPowerOutPut(AXP192_LDO1, AXP202_OFF); // GPS Backup battery
